@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find the Ideal Childcare Teacher</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+            min-height: 400px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .start-screen {
+            text-align: center;
+        }
+
+        .start-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .start-screen p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .question-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        .scenario {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .scenario h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .options {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea10, #764ba210);
+        }
+
+        .option h4 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .option p {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .progress-bar {
+            background: #e1e5e9;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .results-screen {
+            text-align: center;
+        }
+
+        .teacher-profile {
+            background: linear-gradient(135deg, #667eea10, #764ba210);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .profile-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .profile-title {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .profile-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .qualities-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .quality-tag {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: #667eea;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+            font-size: 0.9em;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-1px);
+        }
+
+        .question-counter {
+            color: #666;
+            font-weight: bold;
+        }
+
+        .tips {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .tips h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .tips p, .tips li {
+            color: #856404;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .tips ul {
+            margin-left: 20px;
+        }
+
+        .history-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .history-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+
+        .history-date {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .history-profile {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .history-qualities {
+            margin-top: 8px;
+        }
+
+        .history-quality {
+            display: inline-block;
+            background: #f0f2ff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin: 2px;
+            font-size: 0.8em;
+            color: #667eea;
+        }
+
+        /* Admin panel styles */
+        .admin-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .admin-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+
+        .admin-btn:hover {
+            background: #218838;
+        }
+
+        .admin-toggle {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            z-index: 1001;
+        }
+
+        .results-summary {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .result-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🏫 Hire the Perfect Childcare Teacher</h1>
+            <p>As a school director, find your ideal teaching candidate</p>
+        </div>
+
+        <div class="content">
+            <!-- Start Screen -->
+            <div class="screen active" id="start-screen">
+                <div class="start-screen">
+                    <h2>Welcome, Director! 👋</h2>
+                    <p>You're hiring a new childcare teacher for your school. As an educational leader, you need to identify which qualities are most crucial for your team and student success.</p>
+                    <p>This interactive assessment will help you prioritize the key attributes you value most in teaching candidates. Ready to define your hiring criteria?</p>
+                    <button class="btn" onclick="startGame()">Begin Assessment</button>
+                </div>
+            </div>
+
+            <!-- Question Screens -->
+            <div class="screen" id="question-screen">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                
+                <div class="question-screen">
+                    <h2 id="question-title">Loading question...</h2>
+                    <div class="scenario" id="scenario">
+                        <h3 id="scenario-title">Scenario</h3>
+                        <p id="scenario-description">Loading scenario...</p>
+                    </div>
+                    <div class="options" id="options-container">
+                        <!-- Options will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="navigation">
+                    <button class="btn-secondary" onclick="previousQuestion()" id="prev-btn" style="display:none;">Previous</button>
+                    <span class="question-counter" id="question-counter">Question 1 of 5</span>
+                    <button class="btn" onclick="nextQuestion()" id="next-btn" disabled>Continue</button>
+                </div>
+            </div>
+
+            <!-- Results Screen -->
+            <div class="screen" id="results-screen">
+                <div class="results-screen">
+                    <h2>🎯 Your Ideal Teacher Profile</h2>
+                    <div class="teacher-profile">
+                        <div class="profile-icon" id="profile-icon">👨‍🏫</div>
+                        <div class="profile-title" id="profile-title">The Master Communicator</div>
+                        <div class="profile-description" id="profile-description">
+                            Based on your priorities as a director, you value teachers who excel at communication and creating collaborative environments.
+                        </div>
+                        <div class="qualities-list" id="qualities-list">
+                            <!-- Top qualities will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="tips">
+                        <h4>💼 Hiring & Interview Strategy:</h4>
+                        <ul id="interview-tips">
+                            <!-- Personalized tips will be added here -->
+                        </ul>
+                    </div>
+
+                    <div class="navigation">
+                        <button class="btn-secondary" onclick="restartGame()">Reassess</button>
+                        <button class="btn" onclick="shareResults()">Share with HR Team</button>
+                    </div>
+
+                    <!-- Add new history section -->
+                    <div class="history-section">
+                        <h3>📊 Assessment History</h3>
+                        <div class="history-list" id="history-list">
+                            <!-- History items will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <button class="admin-toggle" onclick="toggleAdminPanel()">👨‍💼</button>
+    
+    <div class="admin-panel" id="admin-panel">
+        <h4>📊 Admin Dashboard</h4>
+        <button class="admin-btn" onclick="viewAllResults()">View All Results</button>
+        <button class="admin-btn" onclick="exportData()">Export CSV</button>
+        <button class="admin-btn" onclick="clearAllData()">Clear Data</button>
+        <div class="results-summary" id="results-summary" style="display:none;">
+            <!-- All results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration (You'll need to replace with your own config)
+        const firebaseConfig = {
+            // For demo purposes, using a mock configuration
+            // You'll need to replace this with your actual Firebase config
+            apiKey: "demo-api-key",
+            authDomain: "demo-project.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "demo-app-id"
+        };
+
+        // Initialize Firebase (for demo, we'll use localStorage simulation)
+        let isFirebaseEnabled = false;
+        try {
+            // firebase.initializeApp(firebaseConfig);
+            // db = firebase.firestore();
+            // isFirebaseEnabled = true;
+        } catch (error) {
+            console.log('Using local storage for demo');
+        }
+
+        const gameData = {
+            questions: [
+                {
+                    title: "Team Collaboration",
+                    scenario: {
+                        title: "Staff Meeting Participation",
+                        description: "During team meetings, what type of contribution do you value most from teaching staff?"
+                    },
+                    options: [
+                        {
+                            text: "Data-Driven Insights",
+                            description: "Shares student progress data and assessment observations",
+                            quality: "analytical"
+                        },
+                        {
+                            text: "Creative Solutions",
+                            description: "Proposes innovative teaching methods and activities",
+                            quality: "creativity"
+                        },
+                        {
+                            text: "Collaborative Planning",
+                            description: "Actively engages in team curriculum development",
+                            quality: "teamwork"
+                        }
+                    ]
+                },
+                {
+                    title: "Classroom Management",
+                    scenario: {
+                        title: "Challenging Student Behavior",
+                        description: "A teacher reports persistent behavioral issues with a student. What approach do you want them to prioritize?"
+                    },
+                    options: [
+                        {
+                            text: "Evidence-Based Interventions",
+                            description: "Document behaviors and implement proven strategies",
+                            quality: "structure"
+                        },
+                        {
+                            text: "Individual Relationship Building",
+                            description: "Focus on understanding and connecting with the child",
+                            quality: "empathy"
+                        },
+                        {
+                            text: "Family Partnership",
+                            description: "Collaborate closely with parents for consistent approach",
+                            quality: "communication"
+                        }
+                    ]
+                },
+                {
+                    title: "Curriculum Implementation",
+                    scenario: {
+                        title: "New Program Introduction",
+                        description: "Your school is implementing a new educational approach. What quality is most important in your teaching staff?"
+                    },
+                    options: [
+                        {
+                            text: "Adaptability to Change",
+                            description: "Embraces new methods and adjusts teaching style",
+                            quality: "flexibility"
+                        },
+                        {
+                            text: "Professional Development Focus",
+                            description: "Actively seeks training and skill improvement",
+                            quality: "growth"
+                        },
+                        {
+                            text: "Consistent Implementation",
+                            description: "Reliably follows established protocols and standards",
+                            quality: "reliability"
+                        }
+                    ]
+                },
+                {
+                    title: "Student Assessment",
+                    scenario: {
+                        title: "Progress Monitoring",
+                        description: "How do you prefer your teachers to track and report student development?"
+                    },
+                    options: [
+                        {
+                            text: "Comprehensive Documentation",
+                            description: "Detailed records of milestones and observations",
+                            quality: "documentation"
+                        },
+                        {
+                            text: "Portfolio-Based Assessment",
+                            description: "Creative collection of student work and growth",
+                            quality: "creativity"
+                        },
+                        {
+                            text: "Regular Progress Conferences",
+                            description: "Frequent communication with families about development",
+                            quality: "communication"
+                        }
+                    ]
+                },
+                {
+                    title: "Professional Standards",
+                    scenario: {
+                        title: "Hiring Decision Factor",
+                        description: "You have two equally qualified candidates. What additional factor would be the deciding criterion?"
+                    },
+                    options: [
+                        {
+                            text: "Advanced Certifications",
+                            description: "Additional credentials in special education or languages",
+                            quality: "expertise"
+                        },
+                        {
+                            text: "Leadership Potential",
+                            description: "Ability to mentor new staff and lead initiatives",
+                            quality: "leadership"
+                        },
+                        {
+                            text: "Cultural Competency",
+                            description: "Experience with diverse populations and inclusive practices",
+                            quality: "diversity"
+                        }
+                    ]
+                }
+            ],
+            profiles: {
+                communication: {
+                    icon: "💬",
+                    title: "The Master Communicator",
+                    description: "You value teachers who excel at building bridges between school, students, and families through effective communication."
+                },
+                teamwork: {
+                    icon: "🤝",
+                    title: "The Collaborative Professional",
+                    description: "You prioritize teachers who work seamlessly with colleagues and contribute actively to your school's team culture."
+                },
+                creativity: {
+                    icon: "🎨",
+                    title: "The Innovation Catalyst",
+                    description: "You seek teachers who bring fresh ideas, creative solutions, and innovative approaches to education."
+                },
+                structure: {
+                    icon: "📊",
+                    title: "The Systematic Educator",
+                    description: "You value teachers who implement evidence-based practices and maintain consistent, structured approaches."
+                },
+                empathy: {
+                    icon: "💖",
+                    title: "The Relationship Builder",
+                    description: "You prioritize teachers who form deep connections with students and understand individual needs."
+                },
+                leadership: {
+                    icon: "⭐",
+                    title: "The Future Leader",
+                    description: "You seek teachers with leadership potential who can grow within your organization and mentor others."
+                },
+                flexibility: {
+                    icon: "🔄",
+                    title: "The Adaptable Professional",
+                    description: "You value teachers who embrace change and can pivot effectively as educational needs evolve."
+                },
+                growth: {
+                    icon: "📈",
+                    title: "The Lifelong Learner",
+                    description: "You prioritize teachers committed to continuous professional development and skill enhancement."
+                }
+            }
+        };
+
+        let currentQuestion = 0;
+        let answers = [];
+        let qualityScores = {};
+
+        function startGame() {
+            showScreen('question-screen');
+            currentQuestion = 0;
+            answers = [];
+            qualityScores = {};
+            loadQuestion();
+        }
+
+        function showScreen(screenId) {
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function loadQuestion() {
+            const question = gameData.questions[currentQuestion];
+            
+            document.getElementById('question-title').textContent = question.title;
+            document.getElementById('scenario-title').textContent = question.scenario.title;
+            document.getElementById('scenario-description').textContent = question.scenario.description;
+            document.getElementById('question-counter').textContent = `Question ${currentQuestion + 1} of ${gameData.questions.length}`;
+            
+            const progress = ((currentQuestion + 1) / gameData.questions.length) * 100;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.onclick = () => selectOption(index);
+                optionElement.innerHTML = `
+                    <h4>${option.text}</h4>
+                    <p>${option.description}</p>
+                `;
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            document.getElementById('prev-btn').style.display = currentQuestion > 0 ? 'block' : 'none';
+            document.getElementById('next-btn').disabled = true;
+        }
+
+        function selectOption(optionIndex) {
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            options[optionIndex].classList.add('selected');
+            
+            const question = gameData.questions[currentQuestion];
+            const selectedOption = question.options[optionIndex];
+            answers[currentQuestion] = selectedOption;
+            
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < gameData.questions.length - 1) {
+                currentQuestion++;
+                loadQuestion();
+            } else {
+                calculateResults();
+                showScreen('results-screen');
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                loadQuestion();
+                
+                if (answers[currentQuestion]) {
+                    const question = gameData.questions[currentQuestion];
+                    const selectedIndex = question.options.findIndex(opt => opt === answers[currentQuestion]);
+                    if (selectedIndex !== -1) {
+                        document.querySelectorAll('.option')[selectedIndex].classList.add('selected');
+                        document.getElementById('next-btn').disabled = false;
+                    }
+                }
+            }
+        }
+
+        function calculateResults() {
+            qualityScores = {};
+            
+            answers.forEach(answer => {
+                if (answer && answer.quality) {
+                    qualityScores[answer.quality] = (qualityScores[answer.quality] || 0) + 1;
+                }
+            });
+            
+            const topQuality = Object.keys(qualityScores).reduce((a, b) => 
+                qualityScores[a] > qualityScores[b] ? a : b
+            );
+            
+            const profile = gameData.profiles[topQuality] || gameData.profiles.communication;
+            
+            document.getElementById('profile-icon').textContent = profile.icon;
+            document.getElementById('profile-title').textContent = profile.title;
+            document.getElementById('profile-description').textContent = profile.description;
+            
+            const qualitiesList = document.getElementById('qualities-list');
+            qualitiesList.innerHTML = '';
+            
+            const sortedQualities = Object.entries(qualityScores)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 4);
+            
+            sortedQualities.forEach(([quality, score]) => {
+                const tag = document.createElement('div');
+                tag.className = 'quality-tag';
+                tag.textContent = quality.charAt(0).toUpperCase() + quality.slice(1);
+                qualitiesList.appendChild(tag);
+            });
+            
+            generateInterviewTips(topQuality);
+
+            // Save results both locally and to shared database
+            saveToHistory(profile, sortedQualities);
+            saveToSharedDatabase(profile, sortedQualities, answers);
+            loadHistory();
+        }
+
+        function generateInterviewTips(topQuality) {
+            const tips = {
+                communication: [
+                    "Ask candidates to describe their parent communication strategies",
+                    "Request examples of difficult conversations they've navigated",
+                    "Evaluate their ability to document and report student progress"
+                ],
+                teamwork: [
+                    "Inquire about their experience with collaborative curriculum planning",
+                    "Ask for examples of successful team projects or initiatives",
+                    "Assess their conflict resolution skills with colleagues"
+                ],
+                creativity: [
+                    "Request a sample lesson plan showcasing innovative activities",
+                    "Ask about their approach to adapting curriculum for different learners",
+                    "Evaluate their ideas for engaging reluctant students"
+                ],
+                structure: [
+                    "Ask about their classroom management philosophy and systems",
+                    "Request examples of data collection and progress monitoring",
+                    "Evaluate their experience with evidence-based teaching practices"
+                ],
+                empathy: [
+                    "Ask about their approach to supporting struggling students",
+                    "Request examples of building relationships with challenging children",
+                    "Evaluate their understanding of trauma-informed practices"
+                ],
+                leadership: [
+                    "Inquire about their mentoring or training experience",
+                    "Ask about initiatives they've led or would like to implement",
+                    "Assess their vision for professional growth within your organization"
+                ],
+                flexibility: [
+                    "Ask about times they've had to adapt quickly to changes",
+                    "Request examples of modifying approaches based on student needs",
+                    "Evaluate their openness to feedback and new methodologies"
+                ],
+                growth: [
+                    "Inquire about their professional development goals and activities",
+                    "Ask about recent learning that has changed their practice",
+                    "Evaluate their commitment to staying current with best practices"
+                ]
+            };
+            
+            const tipsList = document.getElementById('interview-tips');
+            tipsList.innerHTML = '';
+            
+            const qualityTips = tips[topQuality] || tips.communication;
+            qualityTips.forEach(tip => {
+                const li = document.createElement('li');
+                li.textContent = tip;
+                tipsList.appendChild(li);
+            });
+        }
+
+        function saveToHistory(profile, qualities) {
+            const history = JSON.parse(localStorage.getItem('assessmentHistory') || '[]');
+            const newEntry = {
+                date: new Date().toISOString(),
+                profile: profile.title,
+                qualities: qualities.map(([quality]) => quality),
+                icon: profile.icon
+            };
+            history.unshift(newEntry); // Add new entry at the beginning
+            localStorage.setItem('assessmentHistory', JSON.stringify(history));
+        }
+
+        function loadHistory() {
+            const historyList = document.getElementById('history-list');
+            const history = JSON.parse(localStorage.getItem('assessmentHistory') || '[]');
+            
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p>No previous assessments found.</p>';
+                return;
+            }
+
+            history.forEach(entry => {
+                const date = new Date(entry.date).toLocaleDateString();
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-date">${date}</div>
+                    <div class="history-profile">${entry.icon} ${entry.profile}</div>
+                    <div class="history-qualities">
+                        ${entry.qualities.map(quality => 
+                            `<span class="history-quality">${quality.charAt(0).toUpperCase() + quality.slice(1)}</span>`
+                        ).join('')}
+                    </div>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        // Load history when the page loads
+        window.onload = function() {
+            loadHistory();
+        };
+
+        function restartGame() {
+            showScreen('start-screen');
+        }
+
+        function shareResults() {
+            const profile = document.getElementById('profile-title').textContent;
+            const text = `As a school director, I've identified my ideal teacher hiring profile: ${profile}! This assessment helps clarify our staffing priorities.`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Director\'s Ideal Teacher Profile',
+                    text: text
+                });
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Results copied to clipboard!');
+                });
+            }
+        }
+
+        function toggleAdminPanel() {
+            const adminPanel = document.getElementById('admin-panel');
+            const isVisible = adminPanel.style.display !== 'none';
+            adminPanel.style.display = isVisible ? 'none' : 'block';
+        }
+
+        function viewAllResults() {
+            const summaryDiv = document.getElementById('results-summary');
+            const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
+            
+            if (sharedResults.length === 0) {
+                summaryDiv.innerHTML = '<p>No assessment results found yet.</p>';
+                summaryDiv.style.display = 'block';
+                return;
+            }
+
+            // Analyze results
+            const profileCounts = {};
+            const qualityCounts = {};
+            
+            sharedResults.forEach(result => {
+                profileCounts[result.profile] = (profileCounts[result.profile] || 0) + 1;
+                result.topQualities.forEach(quality => {
+                    qualityCounts[quality] = (qualityCounts[quality] || 0) + 1;
+                });
+            });
+
+            let html = `
+                <h5>📈 Results Summary (${sharedResults.length} responses)</h5>
+                <div style="margin: 15px 0;">
+                    <strong>Most Common Profiles:</strong><br>
+                    ${Object.entries(profileCounts)
+                        .sort(([,a], [,b]) => b - a)
+                        .slice(0, 3)
+                        .map(([profile, count]) => `• ${profile}: ${count} people`)
+                        .join('<br>')}
+                </div>
+                <div style="margin: 15px 0;">
+                    <strong>Top Valued Qualities:</strong><br>
+                    ${Object.entries(qualityCounts)
+                        .sort(([,a], [,b]) => b - a)
+                        .slice(0, 5)
+                        .map(([quality, count]) => `• ${quality.charAt(0).toUpperCase() + quality.slice(1)}: ${count} times`)
+                        .join('<br>')}
+                </div>
+                <h6>Recent Individual Results:</h6>
+            `;
+
+            // Show recent individual results
+            sharedResults.slice(-5).reverse().forEach(result => {
+                const date = new Date(result.timestamp).toLocaleString();
+                html += `
+                    <div class="result-item">
+                        <strong>${result.profileIcon} ${result.profile}</strong><br>
+                        <small>${date}</small><br>
+                        <em>Top qualities: ${result.topQualities.join(', ')}</em>
+                    </div>
+                `;
+            });
+
+            summaryDiv.innerHTML = html;
+            summaryDiv.style.display = 'block';
+        }
+
+        function saveToSharedDatabase(profile, qualities, userAnswers) {
+            const resultData = {
+                timestamp: new Date().toISOString(),
+                profile: profile.title,
+                profileIcon: profile.icon,
+                topQualities: qualities.map(([quality]) => quality),
+                allAnswers: userAnswers.map(answer => ({
+                    quality: answer.quality,
+                    text: answer.text
+                })),
+                userAgent: navigator.userAgent,
+                sessionId: generateSessionId()
+            };
+
+            if (isFirebaseEnabled) {
+                // Save to Firebase
+                db.collection('assessmentResults').add(resultData)
+                    .then(() => console.log('Result saved to database'))
+                    .catch(error => console.error('Error saving to database:', error));
+            } else {
+                // Save to localStorage for demo (simulate shared database)
+                const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
+                sharedResults.push(resultData);
+                localStorage.setItem('sharedAssessmentResults', JSON.stringify(sharedResults));
+            }
+        }
+
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        }
+
+        function exportData() {
+            const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
+            
+            if (sharedResults.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            // Create CSV content
+            const headers = ['Timestamp', 'Profile', 'Top Quality 1', 'Top Quality 2', 'Top Quality 3', 'Session ID'];
+            const csvContent = [
+                headers.join(','),
+                ...sharedResults.map(result => [
+                    result.timestamp,
+                    `"${result.profile}"`,
+                    result.topQualities[0] || '',
+                    result.topQualities[1] || '',
+                    result.topQualities[2] || '',
+                    result.sessionId
+                ].join(','))
+            ].join('\n');
+
+            // Download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `assessment_results_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear ALL assessment data? This cannot be undone.')) {
+                localStorage.removeItem('sharedAssessmentResults');
+                document.getElementById('results-summary').style.display = 'none';
+                alert('All data cleared');
+            }
+        }
+    </script>
+</body>
+</html>

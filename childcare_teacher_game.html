@@ -476,26 +476,29 @@
     </div>
 
     <script>
-        // Firebase Configuration (You'll need to replace with your own config)
+        // Firebase Configuration - Using your actual Firebase project
         const firebaseConfig = {
-            // For demo purposes, using a mock configuration
-            // You'll need to replace this with your actual Firebase config
-            apiKey: "demo-api-key",
-            authDomain: "demo-project.firebaseapp.com",
-            projectId: "demo-project",
-            storageBucket: "demo-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "demo-app-id"
+            apiKey: "AIzaSyB83lU3shdek0MYtvuT9wgdFvGWLaltWXc",
+            authDomain: "childpre0606.firebaseapp.com",
+            projectId: "childpre0606",
+            storageBucket: "childpre0606.firebasestorage.app",
+            messagingSenderId: "963681190468",
+            appId: "1:963681190468:web:0f78a942deed663dadf211",
+            measurementId: "G-BJBW1V8FRR"
         };
 
-        // Initialize Firebase (for demo, we'll use localStorage simulation)
+        // Initialize Firebase
+        let db = null;
         let isFirebaseEnabled = false;
+        
         try {
-            // firebase.initializeApp(firebaseConfig);
-            // db = firebase.firestore();
-            // isFirebaseEnabled = true;
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            isFirebaseEnabled = true;
+            console.log('Firebase connected successfully!');
         } catch (error) {
-            console.log('Using local storage for demo');
+            console.error('Firebase initialization failed:', error);
+            console.log('Falling back to local storage for demo');
         }
 
         const gameData = {
@@ -919,11 +922,37 @@
 
         function viewAllResults() {
             const summaryDiv = document.getElementById('results-summary');
-            const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
             
-            if (sharedResults.length === 0) {
-                summaryDiv.innerHTML = '<p>No assessment results found yet.</p>';
+            if (isFirebaseEnabled) {
+                // Get data from Firestore
+                summaryDiv.innerHTML = '<p>Loading results from database...</p>';
                 summaryDiv.style.display = 'block';
+                
+                db.collection('assessmentResults')
+                    .orderBy('timestamp', 'desc')
+                    .limit(50) // Limit to last 50 results
+                    .get()
+                    .then((querySnapshot) => {
+                        const results = [];
+                        querySnapshot.forEach((doc) => {
+                            results.push(doc.data());
+                        });
+                        displayResults(results, summaryDiv);
+                    })
+                    .catch((error) => {
+                        console.error('Error getting results:', error);
+                        summaryDiv.innerHTML = '<p>Error loading results from database</p>';
+                    });
+            } else {
+                // Use localStorage for demo
+                const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
+                displayResults(sharedResults, summaryDiv);
+            }
+        }
+
+        function displayResults(results, summaryDiv) {
+            if (results.length === 0) {
+                summaryDiv.innerHTML = '<p>No assessment results found yet.</p>';
                 return;
             }
 
@@ -931,15 +960,17 @@
             const profileCounts = {};
             const qualityCounts = {};
             
-            sharedResults.forEach(result => {
+            results.forEach(result => {
                 profileCounts[result.profile] = (profileCounts[result.profile] || 0) + 1;
-                result.topQualities.forEach(quality => {
-                    qualityCounts[quality] = (qualityCounts[quality] || 0) + 1;
-                });
+                if (result.topQualities) {
+                    result.topQualities.forEach(quality => {
+                        qualityCounts[quality] = (qualityCounts[quality] || 0) + 1;
+                    });
+                }
             });
 
             let html = `
-                <h5>📈 Results Summary (${sharedResults.length} responses)</h5>
+                <h5>📈 Results Summary (${results.length} responses)</h5>
                 <div style="margin: 15px 0;">
                     <strong>Most Common Profiles:</strong><br>
                     ${Object.entries(profileCounts)
@@ -960,56 +991,46 @@
             `;
 
             // Show recent individual results
-            sharedResults.slice(-5).reverse().forEach(result => {
+            results.slice(0, 5).forEach(result => {
                 const date = new Date(result.timestamp).toLocaleString();
                 html += `
                     <div class="result-item">
                         <strong>${result.profileIcon} ${result.profile}</strong><br>
                         <small>${date}</small><br>
-                        <em>Top qualities: ${result.topQualities.join(', ')}</em>
+                        <em>Top qualities: ${(result.topQualities || []).join(', ')}</em>
                     </div>
                 `;
             });
 
             summaryDiv.innerHTML = html;
-            summaryDiv.style.display = 'block';
-        }
-
-        function saveToSharedDatabase(profile, qualities, userAnswers) {
-            const resultData = {
-                timestamp: new Date().toISOString(),
-                profile: profile.title,
-                profileIcon: profile.icon,
-                topQualities: qualities.map(([quality]) => quality),
-                allAnswers: userAnswers.map(answer => ({
-                    quality: answer.quality,
-                    text: answer.text
-                })),
-                userAgent: navigator.userAgent,
-                sessionId: generateSessionId()
-            };
-
-            if (isFirebaseEnabled) {
-                // Save to Firebase
-                db.collection('assessmentResults').add(resultData)
-                    .then(() => console.log('Result saved to database'))
-                    .catch(error => console.error('Error saving to database:', error));
-            } else {
-                // Save to localStorage for demo (simulate shared database)
-                const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
-                sharedResults.push(resultData);
-                localStorage.setItem('sharedAssessmentResults', JSON.stringify(sharedResults));
-            }
-        }
-
-        function generateSessionId() {
-            return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
         }
 
         function exportData() {
-            const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
-            
-            if (sharedResults.length === 0) {
+            if (isFirebaseEnabled) {
+                // Export from Firestore
+                db.collection('assessmentResults')
+                    .orderBy('timestamp', 'desc')
+                    .get()
+                    .then((querySnapshot) => {
+                        const results = [];
+                        querySnapshot.forEach((doc) => {
+                            results.push(doc.data());
+                        });
+                        downloadCSV(results);
+                    })
+                    .catch((error) => {
+                        console.error('Error exporting data:', error);
+                        alert('Error exporting data from database');
+                    });
+            } else {
+                // Export from localStorage
+                const results = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
+                downloadCSV(results);
+            }
+        }
+
+        function downloadCSV(results) {
+            if (results.length === 0) {
                 alert('No data to export');
                 return;
             }
@@ -1018,12 +1039,12 @@
             const headers = ['Timestamp', 'Profile', 'Top Quality 1', 'Top Quality 2', 'Top Quality 3', 'Session ID'];
             const csvContent = [
                 headers.join(','),
-                ...sharedResults.map(result => [
+                ...results.map(result => [
                     result.timestamp,
                     `"${result.profile}"`,
-                    result.topQualities[0] || '',
-                    result.topQualities[1] || '',
-                    result.topQualities[2] || '',
+                    (result.topQualities && result.topQualities[0]) || '',
+                    (result.topQualities && result.topQualities[1]) || '',
+                    (result.topQualities && result.topQualities[2]) || '',
                     result.sessionId
                 ].join(','))
             ].join('\n');
@@ -1040,10 +1061,56 @@
 
         function clearAllData() {
             if (confirm('Are you sure you want to clear ALL assessment data? This cannot be undone.')) {
-                localStorage.removeItem('sharedAssessmentResults');
-                document.getElementById('results-summary').style.display = 'none';
-                alert('All data cleared');
+                if (isFirebaseEnabled) {
+                    // Clear Firestore data (Note: This requires admin access in production)
+                    alert('Please use Firebase console to clear database data');
+                } else {
+                    localStorage.removeItem('sharedAssessmentResults');
+                    document.getElementById('results-summary').style.display = 'none';
+                    alert('Local data cleared');
+                }
             }
+        }
+
+        function saveToSharedDatabase(profile, qualities, userAnswers) {
+            const resultData = {
+                timestamp: new Date().toISOString(),
+                profile: profile.title,
+                profileIcon: profile.icon,
+                topQualities: qualities.map(([quality]) => quality),
+                allAnswers: userAnswers.map(answer => ({
+                    quality: answer.quality,
+                    text: answer.text
+                })),
+                userAgent: navigator.userAgent.substring(0, 100), // Limit length
+                sessionId: generateSessionId()
+            };
+
+            if (isFirebaseEnabled) {
+                // Save to Firestore (real shared database)
+                db.collection('assessmentResults').add(resultData)
+                    .then((docRef) => {
+                        console.log('Result saved to database with ID:', docRef.id);
+                    })
+                    .catch(error => {
+                        console.error('Error saving to database:', error);
+                        // Fallback to localStorage if Firebase fails
+                        saveToLocalStorage(resultData);
+                    });
+            } else {
+                // Fallback to localStorage for demo
+                saveToLocalStorage(resultData);
+            }
+        }
+
+        function saveToLocalStorage(resultData) {
+            const sharedResults = JSON.parse(localStorage.getItem('sharedAssessmentResults') || '[]');
+            sharedResults.push(resultData);
+            localStorage.setItem('sharedAssessmentResults', JSON.stringify(sharedResults));
+        }
+
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
         }
     </script>
 </body>

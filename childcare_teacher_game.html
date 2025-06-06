@@ -1065,9 +1065,18 @@
                     // Clear Firestore data (Note: This requires admin access in production)
                     alert('Please use Firebase console to clear database data');
                 } else {
+                    // Clear both types of localStorage data
                     localStorage.removeItem('sharedAssessmentResults');
+                    localStorage.removeItem('assessmentHistory');
+                    
+                    // Hide and clear the admin results summary
                     document.getElementById('results-summary').style.display = 'none';
-                    alert('Local data cleared');
+                    document.getElementById('results-summary').innerHTML = '';
+                    
+                    // Refresh the history display on the main results screen
+                    loadHistory();
+                    
+                    alert('All local data cleared successfully');
                 }
             }
         }

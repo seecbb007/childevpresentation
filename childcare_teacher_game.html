@@ -1067,8 +1067,17 @@
                     
                     db.collection('assessmentResults').get()
                         .then((querySnapshot) => {
+                            console.log(`Found ${querySnapshot.size} documents to delete`);
+                            
+                            if (querySnapshot.size === 0) {
+                                console.log('No documents found in Firestore');
+                                alert('No data found in database to clear');
+                                return;
+                            }
+                            
                             const batch = db.batch();
                             querySnapshot.docs.forEach((doc) => {
+                                console.log(`Adding document ${doc.id} to deletion batch`);
                                 batch.delete(doc.ref);
                             });
                             return batch.commit();
@@ -1091,7 +1100,21 @@
                         })
                         .catch((error) => {
                             console.error('Error clearing Firestore data:', error);
-                            alert('Error clearing database data: ' + error.message);
+                            console.error('Error code:', error.code);
+                            console.error('Error message:', error.message);
+                            
+                            // If Firebase deletion fails, still clear localStorage
+                            localStorage.removeItem('sharedAssessmentResults');
+                            localStorage.removeItem('assessmentHistory');
+                            
+                            // Hide and clear the admin results summary
+                            document.getElementById('results-summary').style.display = 'none';
+                            document.getElementById('results-summary').innerHTML = '';
+                            
+                            // Refresh the history display
+                            loadHistory();
+                            
+                            alert(`Database deletion failed (${error.code}), but local storage cleared. Error: ${error.message}`);
                         });
                 } else {
                     // Clear both types of localStorage data

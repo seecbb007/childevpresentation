@@ -1062,8 +1062,37 @@
         function clearAllData() {
             if (confirm('Are you sure you want to clear ALL assessment data? This cannot be undone.')) {
                 if (isFirebaseEnabled) {
-                    // Clear Firestore data (Note: This requires admin access in production)
-                    alert('Please use Firebase console to clear database data');
+                    // Clear Firestore data
+                    console.log('Clearing data from Firestore...');
+                    
+                    db.collection('assessmentResults').get()
+                        .then((querySnapshot) => {
+                            const batch = db.batch();
+                            querySnapshot.docs.forEach((doc) => {
+                                batch.delete(doc.ref);
+                            });
+                            return batch.commit();
+                        })
+                        .then(() => {
+                            console.log('Firestore data cleared successfully');
+                            
+                            // Also clear localStorage
+                            localStorage.removeItem('sharedAssessmentResults');
+                            localStorage.removeItem('assessmentHistory');
+                            
+                            // Hide and clear the admin results summary
+                            document.getElementById('results-summary').style.display = 'none';
+                            document.getElementById('results-summary').innerHTML = '';
+                            
+                            // Refresh the history display
+                            loadHistory();
+                            
+                            alert('All data cleared successfully from database and local storage');
+                        })
+                        .catch((error) => {
+                            console.error('Error clearing Firestore data:', error);
+                            alert('Error clearing database data: ' + error.message);
+                        });
                 } else {
                     // Clear both types of localStorage data
                     localStorage.removeItem('sharedAssessmentResults');
